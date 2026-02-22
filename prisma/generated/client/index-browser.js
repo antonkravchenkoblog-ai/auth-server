@@ -146,15 +146,6 @@ exports.Prisma.AccountScalarFieldEnum = {
   userId: 'userId'
 };
 
-exports.Prisma.TokenScalarFieldEnum = {
-  id: 'id',
-  email: 'email',
-  token: 'token',
-  type: 'type',
-  expiresIn: 'expiresIn',
-  createdAt: 'createdAt'
-};
-
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -176,19 +167,12 @@ exports.UserRole = exports.$Enums.UserRole = {
 
 exports.AuthMethod = exports.$Enums.AuthMethod = {
   CREDENTIALS: 'CREDENTIALS',
-  GOOGLE: 'GOOGLE',
-};
-
-exports.TokenType = exports.$Enums.TokenType = {
-  VERIFICATION: 'VERIFICATION',
-  TWO_FACTOR: 'TWO_FACTOR',
-  PASSWORD_RESET: 'PASSWORD_RESET'
+  GOOGLE: 'GOOGLE'
 };
 
 exports.Prisma.ModelName = {
   User: 'User',
-  Account: 'Account',
-  Token: 'Token'
+  Account: 'Account'
 };
 
 /**

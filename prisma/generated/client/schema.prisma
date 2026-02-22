@@ -50,19 +50,6 @@ model Account {
   @@map("accounts")
 }
 
-model Token {
-  id String @id @default(uuid())
-
-  email     String
-  token     String    @unique
-  type      TokenType
-  expiresIn DateTime  @map("expires_in")
-
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@map("tokens")
-}
-
 enum UserRole {
   REGULAR
   ADMIN
@@ -71,10 +58,4 @@ enum UserRole {
 enum AuthMethod {
   CREDENTIALS
   GOOGLE
-}
-
-enum TokenType {
-  VERIFICATION
-  TWO_FACTOR
-  PASSWORD_RESET
 }
