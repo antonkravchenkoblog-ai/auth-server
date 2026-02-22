@@ -12,7 +12,8 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "prisma-client": ["prisma/generated/client"]
     },
     "incremental": true,
     "skipLibCheck": true,

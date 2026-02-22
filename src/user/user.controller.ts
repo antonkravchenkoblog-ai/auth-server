@@ -10,7 +10,7 @@ import {
 
 import { Authorization } from '@/auth/decorators/auth.decorator';
 import { Authorized } from '@/auth/decorators/authorized.decorator';
-import { User, UserRole } from '@prisma/client';
+import { User, UserRole } from 'prisma-client';
 
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserService } from './user.service';

@@ -4,7 +4,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AuthMethod } from '@prisma/client';
+import { AuthMethod } from 'prisma-client';
 import { verify } from 'argon2';
 import { Request, Response } from 'express';
 
