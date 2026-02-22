@@ -1,0 +1,13 @@
+version: '3.9'
+
+services:
+  server:
+    container_name: nest_server
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - '${PORT:-4000}:${PORT:-4000}'
