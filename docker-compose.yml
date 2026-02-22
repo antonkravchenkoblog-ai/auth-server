@@ -1,5 +1,3 @@
-gversion: '3.9'
-
 services:
   server:
     container_name: nest_server
