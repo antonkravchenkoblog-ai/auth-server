@@ -1,21 +1,37 @@
-FROM node:22-alpine AS builder
+# Build stage
+FROM node:20-alpine AS builder
+
 RUN apk add --no-cache python3 make g++
+RUN corepack enable
+
 WORKDIR /app
+
+# Provide a default datasource for Prisma generate; override at build/runtime as needed
+ARG DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres?schema=public
+ENV DATABASE_URL=${DATABASE_URL}
+
 COPY package.json yarn.lock ./
 RUN yarn install --frozen-lockfile
+
 COPY prisma ./prisma
-RUN yarn prisma generate
-COPY . .
+COPY tsconfig*.json nest-cli.json prisma.config.ts ./
+COPY src ./src
+
+RUN npx prisma generate
 RUN yarn build
-FROM node:22-alpine AS production
-RUN apk add --no-cache dumb-init
+
+# Runtime stage
+FROM node:20-alpine
+
+RUN corepack enable
 WORKDIR /app
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile --production && yarn cache clean
-COPY --from=builder /app/dist ./dist
+ENV NODE_ENV=production
+ENV PORT=4000
+
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
-USER node
+COPY --from=builder /app/dist ./dist
+
 EXPOSE 4000
 
-ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "dist/main"]
