@@ -18,9 +18,6 @@ export class UserService {
       omit: {
         password: true,
       },
-      include: {
-        accounts: true,
-      },
     });
 
     if (!user) {
@@ -37,8 +34,13 @@ export class UserService {
       where: {
         email,
       },
-      include: {
-        accounts: true,
+    });
+  }
+
+  public async findBySocialId(socialId: string) {
+    return this.prismaService.user.findUnique({
+      where: {
+        socialId,
       },
     });
   }
@@ -50,21 +52,20 @@ export class UserService {
     picture: string,
     method: AuthMethod,
     isVerified: boolean,
+    socialId?: string,
   ) {
     return this.prismaService.user.create({
       data: {
         email,
-        password: password ? await hash(password) : '',
+        password: password ? await hash(password) : null,
         displayName,
         picture,
         method,
         isVerified,
+        socialId,
       },
       omit: {
         password: true,
-      },
-      include: {
-        accounts: true,
       },
     });
   }

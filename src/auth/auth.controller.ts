@@ -1,5 +1,6 @@
 import {
   Body,
+  ConflictException,
   Controller,
   Get,
   HttpCode,
@@ -16,6 +17,7 @@ import { Recaptcha } from '@nestlab/google-recaptcha';
 import { Request, Response } from 'express';
 
 import { AuthService } from './auth.service';
+import { Authorization } from './decorators/auth.decorator';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
@@ -42,24 +44,35 @@ export class AuthController {
     return this.authService.login(req, dto);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Get('/oauth/connect/google')
   @UseGuards(AuthGuard('google'))
-  public async connectGoogle() {
-  }
+  public async connectGoogle() {}
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Get('/oauth/callback/google')
   @UseGuards(AuthGuard('google'))
   public async callbackGoogle(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    await this.authService.handleOAuthLogin(req, req.user as any);
+    const applicationUrl = this.configService.getOrThrow<string>('APPLICATION_URL');
 
-    return res.redirect(
-      `${this.configService.getOrThrow<string>('APPLICATION_URL')}/dashboard/settings`,
-    );
+    try {
+      await this.authService.handleOAuthLogin(req, req.user as any);
+      return res.redirect(`${applicationUrl}/dashboard/settings`);
+    } catch (error) {
+      const message = encodeURIComponent(
+        error instanceof ConflictException
+          ? error.message
+          : 'Authentication failed. Please try again.',
+      );
+      return res.redirect(`${applicationUrl}/auth/login?error=${message}`);
+    }
   }
 
+  @Authorization()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   public async logout(

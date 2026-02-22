@@ -23,6 +23,7 @@ export class SessionService {
           );
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { password, ...safeUser } = user;
 
         resolve({

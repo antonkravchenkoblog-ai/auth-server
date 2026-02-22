@@ -1,4 +1,3 @@
-import { PrismaService } from '@/prisma.service';
 import {
   ConflictException,
   Injectable,
@@ -19,7 +18,6 @@ import { TwoFactorAuthService } from './two-factor-auth/two-factor-auth.service'
 @Injectable()
 export class AuthService {
   public constructor(
-    private readonly prismaService: PrismaService,
     private readonly userService: UserService,
     private readonly sessionService: SessionService,
     private readonly emailConfirmationService: EmailConfirmationService,
@@ -58,6 +56,12 @@ export class AuthService {
     if (!user || !user.password) {
       throw new UnauthorizedException(
         'Invalid email or password. Please check the provided data and try again.',
+      );
+    }
+
+    if (user.method !== AuthMethod.CREDENTIALS) {
+      throw new UnauthorizedException(
+        'This account uses social login. Please sign in using the appropriate provider.',
       );
     }
 
@@ -107,52 +111,34 @@ export class AuthService {
       provider: string;
     },
   ) {
-    const account = await this.prismaService.account.findFirst({
-      where: {
-        id: profile.id,
-        provider: profile.provider,
-      },
-    });
+    // 1. Ищем существующего пользователя по socialId (Google ID)
+    const existingUserBySocialId = await this.userService.findBySocialId(profile.id);
 
-    let user = account?.userId
-      ? await this.userService.findById(account.userId)
-      : null;
-
-    if (user) {
-      return this.sessionService.saveSession(req, user);
+    if (existingUserBySocialId) {
+      return this.sessionService.saveSession(req, existingUserBySocialId);
     }
 
-    const existingUser = await this.userService.findByEmail(profile.email);
+    // 2. Проверяем, не занят ли email другим аккаунтом
+    const existingUserByEmail = await this.userService.findByEmail(profile.email);
 
-    if (existingUser) {
+    if (existingUserByEmail) {
       throw new ConflictException(
-        'Unable to complete authorization. Please try a different sign-in method.',
+        'An account with this email already exists. Please sign in with your existing account.',
       );
     }
 
-    user = await this.userService.create(
+    // 3. Создаём нового пользователя с socialId
+    const newUser = await this.userService.create(
       profile.email,
       '',
       profile.name,
       profile.picture,
-      AuthMethod[profile.provider.toUpperCase()],
+      AuthMethod.GOOGLE,
       true,
+      profile.id,
     );
 
-    if (!account) {
-      await this.prismaService.account.create({
-        data: {
-          userId: user.id,
-          type: 'oauth',
-          provider: profile.provider,
-          accessToken: profile.accessToken,
-          refreshToken: profile.refreshToken,
-          expiresAt: 0,
-        },
-      });
-    }
-
-    return this.sessionService.saveSession(req, user);
+    return this.sessionService.saveSession(req, newUser);
   }
 
   public async logout(req: Request, res: Response): Promise<void> {

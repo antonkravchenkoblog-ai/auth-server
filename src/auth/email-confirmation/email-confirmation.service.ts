@@ -54,12 +54,13 @@ export class EmailConfirmationService {
       return this.sessionService.saveSession(req, existingUser);
     }
 
-    await this.prismaService.user.update({
+    const updatedUser = await this.prismaService.user.update({
       where: { id: existingUser.id },
       data: { isVerified: true },
+      omit: { password: true },
     });
 
-    return this.sessionService.saveSession(req, existingUser);
+    return this.sessionService.saveSession(req, updatedUser);
   }
 
   public async sendVerificationToken(email: string) {
