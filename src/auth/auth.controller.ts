@@ -62,6 +62,7 @@ export class AuthController {
       await this.authService.handleOAuthLogin(req, req.user as any);
       return res.redirect(`${applicationUrl}/dashboard/settings`);
     } catch (error) {
+      console.log(error)
       const message = encodeURIComponent(
         error instanceof ConflictException
           ? error.message

@@ -48,6 +48,9 @@ export type StringValue =
 
 export function ms(str: StringValue): number {
   if (typeof str !== 'string' || str.length === 0 || str.length > 100) {
+    console.log(
+      'Value provided to ms() must be a string with length between 1 and 99.',
+    );
     throw new Error(
       'Value provided to ms() must be a string with length between 1 and 99.',
     );

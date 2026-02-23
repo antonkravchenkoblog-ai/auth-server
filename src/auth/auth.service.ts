@@ -119,9 +119,14 @@ export class AuthService {
     }
 
     // 2. Проверяем, не занят ли email другим аккаунтом
-    const existingUserByEmail = await this.userService.findByEmail(profile.email);
+    const existingUserByEmail = await this.userService.findByEmail(
+      profile.email,
+    );
 
     if (existingUserByEmail) {
+      console.log(
+        'An account with this email already exists. Please sign in with your existing account',
+      );
       throw new ConflictException(
         'An account with this email already exists. Please sign in with your existing account.',
       );

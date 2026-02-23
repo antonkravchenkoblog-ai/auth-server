@@ -16,6 +16,7 @@ export class SessionService {
 
       req.session.save((err) => {
         if (err) {
+          console.log(err);
           return reject(
             new InternalServerErrorException(
               'Failed to save the session. Please check that the session settings are configured correctly.',
@@ -37,6 +38,7 @@ export class SessionService {
     return new Promise((resolve, reject) => {
       req.session.destroy((err) => {
         if (err) {
+          console.log(err)
           return reject(
             new InternalServerErrorException(
               'Failed to end the session. There may be a server issue or the session has already been terminated.',
