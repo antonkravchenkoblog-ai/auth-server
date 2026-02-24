@@ -22,6 +22,12 @@ export class AuthGuard implements CanActivate {
 
     const user = await this.userService.findById(request.session.userId);
 
+    if (!user) {
+      throw new UnauthorizedException(
+        'You must be logged in to access this resource.',
+      );
+    }
+
     request.user = user;
 
     return true;

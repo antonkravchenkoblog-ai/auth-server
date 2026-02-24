@@ -1,6 +1,7 @@
 import { ValidationPipe } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { NestFactory } from '@nestjs/core'
+import { NestExpressApplication } from '@nestjs/platform-express'
 import * as cookieParser from 'cookie-parser'
 import * as session from 'express-session'
 import { createClient } from 'redis'
@@ -12,11 +13,31 @@ import { AppModule } from './app.module'
 
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService);
 
+  if (config.get<string>('NODE_ENV') === 'production') {
+    app.set('trust proxy', 1);
+  }
 
   app.use(cookieParser(config.getOrThrow<string>('COOKIES_SECRET')));
+
+  const allowedOrigin = config.get<string>('APPLICATION_URL');
+  if (config.get<string>('NODE_ENV') === 'production' && allowedOrigin) {
+    app.use((req, res, next) => {
+      const method = req.method.toUpperCase();
+      if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
+        return next();
+      }
+
+      const origin = req.headers.origin;
+      if (!origin || origin !== allowedOrigin) {
+        return res.status(403).json({ message: 'Invalid origin.' });
+      }
+
+      return next();
+    });
+  }
 
   app.useGlobalPipes(
     new ValidationPipe({

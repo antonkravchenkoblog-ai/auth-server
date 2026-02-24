@@ -1,10 +1,9 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { User } from '@prisma/client';
 import { Request, Response } from 'express';
+
+import { parseBoolean } from '@/libs/utils/parse-boolean.util';
 
 @Injectable()
 export class SessionService {
@@ -12,23 +11,34 @@ export class SessionService {
 
   public async saveSession(req: Request, user: Omit<User, 'password'> & { password?: string }) {
     return new Promise((resolve, reject) => {
-      req.session.userId = user.id;
-
-      req.session.save((err) => {
-        if (err) {
-          console.log(err);
+      req.session.regenerate((regenErr) => {
+        if (regenErr) {
+          console.log(regenErr);
           return reject(
             new InternalServerErrorException(
-              'Failed to save the session. Please check that the session settings are configured correctly.',
+              'Failed to create a new session. Please try again.',
             ),
           );
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { password, ...safeUser } = user;
+        req.session.userId = user.id;
 
-        resolve({
-          user: safeUser,
+        req.session.save((err) => {
+          if (err) {
+            console.log(err);
+            return reject(
+              new InternalServerErrorException(
+                'Failed to save the session. Please check that the session settings are configured correctly.',
+              ),
+            );
+          }
+
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { password, ...safeUser } = user;
+
+          resolve({
+            user: safeUser,
+          });
         });
       });
     });
@@ -45,10 +55,30 @@ export class SessionService {
             ),
           );
         }
-        res.clearCookie(this.configService.getOrThrow<string>('SESSION_NAME'));
+        res.clearCookie(
+          this.configService.getOrThrow<string>('SESSION_NAME'),
+          this.getCookieOptions(),
+        );
         resolve();
       });
     });
+  }
+
+  private getCookieOptions() {
+    return {
+      domain: this.configService.get<string>('SESSION_DOMAIN') || undefined,
+      path: '/',
+      httpOnly: parseBoolean(
+        this.configService.getOrThrow<string>('SESSION_HTTP_ONLY'),
+      ),
+      secure: parseBoolean(
+        this.configService.getOrThrow<string>('SESSION_SECURE'),
+      ),
+      sameSite: (this.configService.get<string>('SESSION_SAME_SITE') || 'lax') as
+        | 'lax'
+        | 'strict'
+        | 'none',
+    };
   }
 }
 
