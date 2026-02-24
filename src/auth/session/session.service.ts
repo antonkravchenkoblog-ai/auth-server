@@ -59,6 +59,13 @@ export class SessionService {
           this.configService.getOrThrow<string>('SESSION_NAME'),
           this.getCookieOptions(),
         );
+        res.clearCookie(
+          this.configService.get<string>('CSRF_COOKIE_NAME') ?? 'csrf_token',
+          {
+            ...this.getCookieOptions(),
+            httpOnly: false,
+          },
+        );
         resolve();
       });
     });

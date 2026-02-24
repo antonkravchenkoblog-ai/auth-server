@@ -5,6 +5,7 @@ import { NestExpressApplication } from '@nestjs/platform-express'
 import * as cookieParser from 'cookie-parser'
 import * as session from 'express-session'
 import { createClient } from 'redis'
+import { randomBytes } from 'crypto'
 
 import { ms, StringValue } from '@/libs/utils/ms.util'
 import { parseBoolean } from '@/libs/utils/parse-boolean.util'
@@ -80,6 +81,46 @@ async function bootstrap() {
       },
     }),
   );
+
+  const csrfCookieName = config.get<string>('CSRF_COOKIE_NAME') ?? 'csrf_token';
+  const csrfCookieOptions = {
+    domain: config.get<string>('SESSION_DOMAIN') || undefined,
+    path: '/',
+    httpOnly: false,
+    secure: parseBoolean(config.getOrThrow<string>('SESSION_SECURE')),
+    sameSite: (config.get<string>('SESSION_SAME_SITE') || 'lax') as
+      | 'lax'
+      | 'strict'
+      | 'none',
+  };
+
+  app.use((req, res, next) => {
+    const hasSession = typeof req.session !== 'undefined';
+    const hasUser = hasSession && typeof req.session.userId !== 'undefined';
+
+    if (!hasSession || !hasUser) {
+      return next();
+    }
+
+    if (!req.session.csrfToken) {
+      req.session.csrfToken = randomBytes(32).toString('hex');
+    }
+
+    res.cookie(csrfCookieName, req.session.csrfToken, csrfCookieOptions);
+
+    const method = req.method.toUpperCase();
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+      const headerToken =
+        (req.headers['x-csrf-token'] as string | undefined) ||
+        (req.body?._csrf as string | undefined);
+
+      if (!headerToken || headerToken !== req.session.csrfToken) {
+        return res.status(403).json({ message: 'Invalid CSRF token.' });
+      }
+    }
+
+    return next();
+  });
 
   app.enableCors({
     origin: config.getOrThrow<string>('APPLICATION_URL'),

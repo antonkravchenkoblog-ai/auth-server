@@ -8,6 +8,7 @@ import {
   Patch,
 } from '@nestjs/common';
 
+import { EmailConfirmationService } from '@/auth/email-confirmation/email-confirmation.service';
 import { Authorization } from '@/auth/decorators/auth.decorator';
 import { Authorized } from '@/auth/decorators/authorized.decorator';
 import { User, UserRole } from '@prisma/client';
@@ -17,7 +18,10 @@ import { UserService } from './user.service';
 
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly emailConfirmationService: EmailConfirmationService,
+  ) {}
 
   @Authorization()
   @HttpCode(HttpStatus.OK)
@@ -40,6 +44,15 @@ export class UserController {
     @Authorized('id') userId: string,
     @Body() dto: UpdateUserDto,
   ) {
-    return this.userService.update(userId, dto);
+    const current = await this.userService.findById(userId);
+    const emailChanged = dto.email !== current.email;
+
+    const updated = await this.userService.update(userId, dto);
+
+    if (emailChanged) {
+      await this.emailConfirmationService.sendVerificationToken(updated.email);
+    }
+
+    return updated;
   }
 }
