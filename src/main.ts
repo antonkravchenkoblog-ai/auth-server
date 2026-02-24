@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config'
 import { NestFactory } from '@nestjs/core'
 import * as cookieParser from 'cookie-parser'
 import * as session from 'express-session'
-import IORedis from 'ioredis'
+import { createClient } from 'redis'
 
 import { ms, StringValue } from '@/libs/utils/ms.util'
 import { parseBoolean } from '@/libs/utils/parse-boolean.util'
@@ -25,14 +25,21 @@ async function bootstrap() {
     }),
   );
   
-  const redis = new IORedis(config.getOrThrow<string>('REDIS_URL'));
+  const redis = createClient({
+    url: config.getOrThrow<string>('REDIS_URL'),
+  })
 
+  redis.on('error', (error) => {
+    console.error('Redis client error', error)
+  })
+
+  await redis.connect()
 
   app.use(
     session({
       store: new RedisStore({
         client: redis,
-        disableTTL:true
+        prefix: config.getOrThrow<string>('REDIS_SESSION_PREFIX'),
       }),
       secret: config.getOrThrow<string>('SESSION_SECRET'),
       name: config.getOrThrow<string>('SESSION_NAME'),
