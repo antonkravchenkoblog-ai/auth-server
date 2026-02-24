@@ -15,6 +15,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
 
+
   app.use(cookieParser(config.getOrThrow<string>('COOKIES_SECRET')));
 
   app.useGlobalPipes(
@@ -43,6 +44,7 @@ async function bootstrap() {
       }),
       secret: config.getOrThrow<string>('SESSION_SECRET'),
       name: config.getOrThrow<string>('SESSION_NAME'),
+      proxy: config.get<string>('NODE_ENV') === 'production',
       resave: false,
       saveUninitialized: false,
       cookie: {
