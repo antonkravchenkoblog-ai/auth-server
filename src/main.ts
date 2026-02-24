@@ -32,7 +32,7 @@ async function bootstrap() {
     session({
       store: new RedisStore({
         client: redis,
-        prefix: config.get<string>('REDIS_SESSION_PREFIX'),
+        disableTTL:true
       }),
       secret: config.getOrThrow<string>('SESSION_SECRET'),
       name: config.getOrThrow<string>('SESSION_NAME'),
@@ -47,7 +47,7 @@ async function bootstrap() {
           | 'lax'
           | 'strict'
           | 'none',
-      }
+      },
     }),
   );
 
